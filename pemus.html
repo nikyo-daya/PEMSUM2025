@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Pensum - Sistemas USAC</title>
+    <style>
+        :root {
+            --bg-color: #0d0d0f;
+            --surface-color: #16161a;
+            --border-color: #2c2c35;
+            --text-main: #e1e1e6;
+            --text-muted: #a9a9b3;
+            
+            --status-locked: #1c1c22;
+            --status-available: #2a2a35;
+            --status-cursando: #8b6b19; /* Ámbar minimalista */
+            --status-aprobado: #265c3a; /* Verde minimalista */
+            
+            --border-available: #4a4a5a;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .title-section h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.25rem;
+        }
+
+        .title-section p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .stats {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .stats span {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        button {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: #232329;
+            border-color: #3f3f4a;
+        }
+
+        .legend {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .color-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .grid-container {
+            display: flex;
+            gap: 1.5rem;
+            overflow-x: auto;
+            padding-bottom: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .semester {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-width: 280px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .semester-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 0.25rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .course {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            background: var(--status-locked);
+        }
+
+        .course.available {
+            background: var(--status-available);
+            border-color: var(--border-available);
+        }
+
+        .course.cursando {
+            background: rgba(139, 107, 25, 0.15);
+            border-color: var(--status-cursando);
+        }
+
+        .course.aprobado {
+            background: rgba(38, 92, 58, 0.15);
+            border-color: var(--status-aprobado);
+        }
+
+        .course-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .course-name {
+            font-size: 0.85rem;
+            line-height: 1.3;
+            color: var(--text-main);
+        }
+
+        .course-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        /* Scrollbar styling for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a5a; 
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="title-section">
+            <h1>Pensum de Sistemas</h1>
+            <p>Interactive Tracker • Click en los cursos para cambiar estado</p>
+        </div>
+        <div class="controls">
+            <div class="stats" id="stats">Créditos: <span>0</span> / 250</div>
+            <button onclick="exportState()">Descargar JSON</button>
+            <button onclick="document.getElementById('fileInput').click()">Cargar JSON</button>
+            <input type="file" id="fileInput" style="display: none;" accept=".json">
+        </div>
+    </header>
+
+    <div class="legend">
+        <div class="legend-item"><div class="color-box" style="background: var(--status-locked); border: 1px solid var(--border-color)"></div> Bloqueado</div>
+        <div class="legend-item"><div class="color-box" style="background: var(--status-available); border: 1px solid var(--border-available)"></div> Disponible</div>
+        <div class="legend-item"><div class="color-box" style="background: rgba(139, 107, 25, 0.15); border: 1px solid var(--status-cursando)"></div> Cursando</div>
+        <div class="legend-item"><div class="color-box" style="background: rgba(38, 92, 58, 0.15); border: 1px solid var(--status-aprobado)"></div> Aprobado</div>
+    </div>
+
+    <div class="grid-container" id="semesters-grid">
+        <!-- Generado por JS -->
+    </div>
+
+    <script>
+        const courses = [{"id": "0005", "name": "T\u00e9cnicas de Estudio e Investigaci\u00f3n", "credits": 3, "semester": 1, "prereqs": []}, {"id": "0017", "name": "\u00c1rea Social Human\u00edstica 1", "credits": 3, "semester": 1, "prereqs": []}, {"id": "0101", "name": "\u00c1rea Matem\u00e1tica B\u00e1sica 1", "credits": 9, "semester": 1, "prereqs": []}, {"id": "0006", "name": "Idioma T\u00e9cnico 1", "credits": 3, "semester": 1, "prereqs": []}, {"id": "0039", "name": "Deportes 1", "credits": 2, "semester": 1, "prereqs": []}, {"id": "0019", "name": "\u00c1rea Social Human\u00edstica 2", "credits": 3, "semester": 2, "prereqs": ["0017"]}, {"id": "0103", "name": "\u00c1rea Matem\u00e1tica B\u00e1sica 2", "credits": 9, "semester": 2, "prereqs": ["0101"]}, {"id": "0147", "name": "F\u00edsica B\u00e1sica", "credits": 5, "semester": 2, "prereqs": ["0101"]}, {"id": "0768", "name": "Introducci\u00f3n a los Algoritmos y Flujo de Datos", "credits": 4, "semester": 2, "prereqs": ["0101"]}, {"id": "0960", "name": "Matem\u00e1tica para Computaci\u00f3n 1", "credits": 5, "semester": 2, "prereqs": ["0101"]}, {"id": "0008", "name": "Idioma T\u00e9cnico 2", "credits": 3, "semester": 2, "prereqs": ["0006"]}, {"id": "0040", "name": "Deportes 2", "credits": 2, "semester": 2, "prereqs": ["0039"]}, {"id": "0089", "name": "Comunicaci\u00f3n Asertiva", "credits": 2, "semester": 3, "prereqs": ["0103", "0147", "0960"]}, {"id": "0107", "name": "\u00c1rea Matem\u00e1tica Intermedia 1", "credits": 9, "semester": 3, "prereqs": ["0103"]}, {"id": "0150", "name": "F\u00edsica 1", "credits": 5, "semester": 3, "prereqs": ["0103", "0147"]}, {"id": "0770", "name": "Introducci\u00f3n a la Programaci\u00f3n y Computaci\u00f3n 1", "credits": 6, "semester": 3, "prereqs": ["0768", "0103", "0147", "0960"]}, {"id": "0795", "name": "L\u00f3gica de Sistemas", "credits": 3, "semester": 3, "prereqs": ["0103", "0147", "0960"]}, {"id": "0962", "name": "Matem\u00e1tica para Computaci\u00f3n 2", "credits": 5, "semester": 3, "prereqs": ["0103", "0147", "0960"]}, {"id": "0001", "name": "\u00c9tica Profesional", "credits": 2, "semester": 3, "prereqs": ["0019"]}, {"id": "0009", "name": "Idioma T\u00e9cnico 3", "credits": 3, "semester": 3, "prereqs": ["0008"]}, {"id": "0112", "name": "\u00c1rea Matem\u00e1tica Intermedia 2", "credits": 6, "semester": 4, "prereqs": ["0107"]}, {"id": "0114", "name": "\u00c1rea Matem\u00e1tica Intermedia 3", "credits": 6, "semester": 4, "prereqs": ["0107"]}, {"id": "0152", "name": "F\u00edsica 2", "credits": 6, "semester": 4, "prereqs": ["0107", "0150"]}, {"id": "0771", "name": "Introducci\u00f3n a la Programaci\u00f3n y Computaci\u00f3n 2", "credits": 6, "semester": 4, "prereqs": ["0107", "0770", "0795", "0962"]}, {"id": "0964", "name": "Organizaci\u00f3n Computacional", "credits": 4, "semester": 4, "prereqs": ["0089", "0150", "0770", "0962"]}, {"id": "2025", "name": "Pr\u00e1cticas Iniciales", "credits": 0, "semester": 4, "prereqs": ["0089", "0107", "0770"]}, {"id": "0010", "name": "L\u00f3gica", "credits": 1, "semester": 4, "prereqs": ["0019"]}, {"id": "0011", "name": "Idioma T\u00e9cnico 4", "credits": 3, "semester": 4, "prereqs": ["0009"]}, {"id": "0116", "name": "Matem\u00e1tica Aplicada 3", "credits": 5, "semester": 5, "prereqs": ["0112", "0114"]}, {"id": "0118", "name": "Matem\u00e1tica Aplicada 1", "credits": 5, "semester": 5, "prereqs": ["0112", "0114"]}, {"id": "0281", "name": "Sistemas Operativos 1", "credits": 6, "semester": 5, "prereqs": ["0964"]}, {"id": "0732", "name": "Estad\u00edstica 1", "credits": 5, "semester": 5, "prereqs": ["0107", "0005"]}, {"id": "0772", "name": "Estructuras de Datos", "credits": 6, "semester": 5, "prereqs": ["0089", "0771"]}, {"id": "0778", "name": "Arquitectura de Computadores y Ensambladores 1", "credits": 5, "semester": 5, "prereqs": ["0964"]}, {"id": "0018", "name": "Filosof\u00eda de la Ciencia", "credits": 1, "semester": 5, "prereqs": ["0019"]}, {"id": "0014", "name": "Econom\u00eda", "credits": 3, "semester": 6, "prereqs": ["0732"]}, {"id": "0601", "name": "Investigaci\u00f3n de Operaciones 1", "credits": 6, "semester": 6, "prereqs": ["0732", "0771"]}, {"id": "0722", "name": "Teor\u00eda de Sistemas 1", "credits": 4, "semester": 6, "prereqs": ["0116", "0118", "0732", "0772"]}, {"id": "0767", "name": "Nuevas Infraestructuras para tic", "credits": 5, "semester": 6, "prereqs": ["0281", "0778"]}, {"id": "0774", "name": "Sistemas de Bases de Datos 1", "credits": 6, "semester": 6, "prereqs": ["0772"]}, {"id": "0796", "name": "Lenguajes Formales y de Programaci\u00f3n", "credits": 4, "semester": 6, "prereqs": ["0772", "0778"]}, {"id": "0120", "name": "Matem\u00e1tica Aplicada 2", "credits": 5, "semester": 6, "prereqs": ["0118"]}, {"id": "0122", "name": "Matem\u00e1tica Aplicada 4", "credits": 5, "semester": 6, "prereqs": ["0118"]}, {"id": "0200", "name": "Ingenier\u00eda El\u00e9ctrica 1", "credits": 6, "semester": 6, "prereqs": ["0114", "0152"]}, {"id": "0603", "name": "Investigaci\u00f3n de Operaciones 2", "credits": 6, "semester": 7, "prereqs": ["0601"]}, {"id": "0707", "name": "Gesti\u00f3n de Proyectos de tic", "credits": 4, "semester": 7, "prereqs": ["0601", "0722"]}, {"id": "0775", "name": "Sistemas de Bases de Datos 2", "credits": 7, "semester": 7, "prereqs": ["0281", "0774"]}, {"id": "0777", "name": "Organizaci\u00f3n de Lenguajes y Compiladores 1", "credits": 6, "semester": 7, "prereqs": ["0281", "0796"]}, {"id": "0794", "name": "Seminario de Computaci\u00f3n", "credits": 4, "semester": 7, "prereqs": ["0767", "0796"]}, {"id": "2036", "name": "Pr\u00e1cticas Intermedias", "credits": 0, "semester": 7, "prereqs": ["0767", "0722", "0774", "0796", "2025"]}, {"id": "0734", "name": "Estad\u00edstica 2", "credits": 5, "semester": 7, "prereqs": ["0732"]}, {"id": "0283", "name": "An\u00e1lisis y Dise\u00f1o de Sistemas 1", "credits": 6, "semester": 8, "prereqs": ["0775"]}, {"id": "0649", "name": "Contabilidad Financiera para Inform\u00e1ticos", "credits": 3, "semester": 8, "prereqs": ["0707", "0603"]}, {"id": "0719", "name": "Nuevas Tecnolog\u00edas para Desarrollo de Software", "credits": 4, "semester": 8, "prereqs": ["0775"]}, {"id": "0786", "name": "Sistemas Organizacionales y Gerenciales 1", "credits": 5, "semester": 8, "prereqs": ["0707", "0603"]}, {"id": "0970", "name": "Redes de Computadoras 1", "credits": 5, "semester": 8, "prereqs": ["0794"]}, {"id": "0972", "name": "Inteligencia Artificial 1", "credits": 5, "semester": 8, "prereqs": ["0772", "0777"]}, {"id": "0700", "name": "Ingenier\u00eda Econ\u00f3mica 1", "credits": 4, "semester": 8, "prereqs": ["0732"]}, {"id": "0776", "name": "Bases de Datos Avanzadas", "credits": 5, "semester": 8, "prereqs": ["0775"]}, {"id": "0729", "name": "Modelaci\u00f3n y Simulaci\u00f3n 1", "credits": 6, "semester": 9, "prereqs": ["0603", "0722"]}, {"id": "0785", "name": "An\u00e1lisis y Dise\u00f1o de Sistemas 2", "credits": 6, "semester": 9, "prereqs": ["0283"]}, {"id": "0787", "name": "Sistemas Organizacionales y Gerenciales 2", "credits": 5, "semester": 9, "prereqs": ["0649", "0786"]}, {"id": "0793", "name": "Seminario de Software", "credits": 4, "semester": 9, "prereqs": ["0719", "0283"]}, {"id": "0968", "name": "Inteligencia Artificial 2", "credits": 5, "semester": 9, "prereqs": ["0972"]}, {"id": "0975", "name": "Redes de Computadoras 2", "credits": 5, "semester": 9, "prereqs": ["0970"]}, {"id": "2009", "name": "Pr\u00e1cticas Finales Ingenier\u00eda Ciencias y Sistemas", "credits": 0, "semester": 9, "prereqs": ["0283", "0719", "0786", "0972", "2036"]}, {"id": "0469", "name": "Ciencia de Datos", "credits": 4, "semester": 10, "prereqs": ["0968"]}, {"id": "0613", "name": "Prospectiva Tecnol\u00f3gica", "credits": 5, "semester": 10, "prereqs": ["0729", "0968"]}, {"id": "0780", "name": "Software Avanzado", "credits": 6, "semester": 10, "prereqs": ["0785"]}, {"id": "0790", "name": "Emprendedores de Negocios Inform\u00e1ticos", "credits": 6, "semester": 10, "prereqs": ["0787"]}, {"id": "0799", "name": "Seminario de Investigaci\u00f3n", "credits": 3, "semester": 10, "prereqs": ["0785", "0786", "0793"]}, {"id": "0967", "name": "Seguridad Inform\u00e1tica", "credits": 4, "semester": 10, "prereqs": ["0975"]}, {"id": "0735", "name": "Auditor\u00eda de Proyectos de Software", "credits": 6, "semester": 10, "prereqs": ["0785"]}, {"id": "0974", "name": "Redes de Nueva Generaci\u00f3n", "credits": 3, "semester": 10, "prereqs": ["0975"]}, {"id": "7999", "name": "Seminario de Investigaci\u00f3n E.P.S. Sistemas", "credits": 3, "semester": 10, "prereqs": ["0785", "0786", "0793"]}];
+        
+        // Cargar estado de localStorage o inicializar vacío
+        let state = JSON.parse(localStorage.getItem('pensum_sistemas_state')) || {};
+
+        function updateState(id) {
+            const currentState = state[id];
+            
+            if (!currentState) {
+                state[id] = 'cursando';
+            } else if (currentState === 'cursando') {
+                state[id] = 'aprobado';
+            } else {
+                delete state[id];
+            }
+            
+            localStorage.setItem('pensum_sistemas_state', JSON.stringify(state));
+            render();
+        }
+
+        function isAvailable(course) {
+            if (course.prereqs.length === 0) return true;
+            // Un curso está disponible si TODOS sus prerrequisitos están "aprobado"
+            return course.prereqs.every(preId => state[preId] === 'aprobado');
+        }
+
+        function render() {
+            const grid = document.getElementById('semesters-grid');
+            grid.innerHTML = '';
+            
+            let totalCredits = 0;
+            let approvedCredits = 0;
+
+            // Agrupar por semestre
+            for (let i = 1; i <= 10; i++) {
+                const semCourses = courses.filter(c => c.semester === i);
+                if (semCourses.length === 0) continue;
+
+                const col = document.createElement('div');
+                col.className = 'semester';
+                col.innerHTML = `<div class="semester-title">Semestre ${i}</div>`;
+
+                semCourses.forEach(c => {
+                    totalCredits += c.credits;
+                    if (state[c.id] === 'aprobado') {
+                        approvedCredits += c.credits;
+                    }
+
+                    const card = document.createElement('div');
+                    
+                    // Determinar clase visual
+                    let statusClass = 'locked';
+                    if (state[c.id]) {
+                        statusClass = state[c.id]; // 'cursando' o 'aprobado'
+                    } else if (isAvailable(c)) {
+                        statusClass = 'available';
+                    }
+
+                    card.className = `course ${statusClass}`;
+                    card.onclick = () => updateState(c.id);
+
+                    card.innerHTML = `
+                        <div class="course-header">
+                            <span>${c.id}</span>
+                            <span>${c.credits} crd</span>
+                        </div>
+                        <div class="course-name">${c.name}</div>
+                        <div class="course-footer">
+                            <span>Pre: ${c.prereqs.join(', ') || 'Ninguno'}</span>
+                        </div>
+                    `;
+                    
+                    col.appendChild(card);
+                });
+                
+                grid.appendChild(col);
+            }
+
+            document.getElementById('stats').innerHTML = `Aprobados: <span>${approvedCredits}</span> / ${totalCredits}`;
+        }
+
+        function exportState() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href",     dataStr);
+            downloadAnchorNode.setAttribute("download", "mi_progreso_pensum.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    state = JSON.parse(e.target.result);
+                    localStorage.setItem('pensum_sistemas_state', JSON.stringify(state));
+                    render();
+                } catch (err) {
+                    alert("Error al parsear el archivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Inicializar
+        render();
+    </script>
+</body>
+</html>
